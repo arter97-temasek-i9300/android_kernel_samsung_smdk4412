@@ -717,7 +717,7 @@ static int touchkey_firmware_update(struct touchkey_i2c *tkey_i2c)
 static irqreturn_t touchkey_interrupt(int irq, void *dev_id)
 {
 	struct touchkey_i2c *tkey_i2c = dev_id;
-    static const int ledCmd[] = {TK_CMD_LED_ON, TK_CMD_LED_OFF};
+    static const int ledCmd[] = {TK_CMD_LED_OFF, TK_CMD_LED_ON};
 #if defined(READ_MEM_SENSITIVITY)
 	u8 data[14];
 #else
@@ -791,7 +791,7 @@ static irqreturn_t touchkey_interrupt(int irq, void *dev_id)
 			touchkey_pressed = 1;			
 		} else if (touch_led_on_screen_touch == TOUCHKEY_LED_DISABLED && handle_led == 1 && touchkey_led_status == TK_CMD_LED_OFF) { 
 			pr_debug("[Touchkey] %s: enabling touchled\n", __func__);
-			i2c_touchkey_write(tkey_i2c->client, (u8 *) &ledCmd[0], 1);
+			i2c_touchkey_write(tkey_i2c->client, (u8 *) &ledCmd[1], 1);
 			touchkey_led_status = TK_CMD_LED_ON;
 		}
 	}
@@ -1185,7 +1185,7 @@ static ssize_t touchkey_led_control(struct device *dev,
 	struct touchkey_i2c *tkey_i2c = dev_get_drvdata(dev);
 	int data;
 	int ret;
-	static const int ledCmd[] = {TK_CMD_LED_ON, TK_CMD_LED_OFF};
+	static const int ledCmd[] = {TK_CMD_LED_OFF, TK_CMD_LED_ON};
 
 #if defined(CONFIG_TARGET_LOCALE_KOR)
 	if (touchkey_probe == false)
@@ -1198,7 +1198,7 @@ static ssize_t touchkey_led_control(struct device *dev,
 		return size;
 	}
 
-	if (data != 1 && data != 2) {
+	if (data != 0 && data != 1) {
 		printk(KERN_DEBUG "[TouchKey] %s wrong cmd %x\n",
 			__func__, data);
 		return size;
@@ -1208,10 +1208,10 @@ static ssize_t touchkey_led_control(struct device *dev,
 	}
 	if (data == 1 && touchkey_pressed == 1 && touchkey_led_status == TK_CMD_LED_OFF) {
 		pr_debug("[Touchkey] %s: enabling touchled\n", __func__);
-		i2c_touchkey_write(tkey_i2c->client, (u8 *) &ledCmd[0], 1);
+		i2c_touchkey_write(tkey_i2c->client, (u8 *) &ledCmd[1], 1);
 		touchkey_led_status = TK_CMD_LED_ON;
 	}	
-	if (data == 2) {
+	if (data == 0) {
 		touchkey_pressed = 0;
 		handle_led = 0;
 	}
@@ -1220,10 +1220,10 @@ static ssize_t touchkey_led_control(struct device *dev,
 		data = TK_CMD_LED_OFF;
 	} else {
 #if defined(CONFIG_TARGET_LOCALE_NA)
-	    if (tkey_i2c->module_ver >= 8)
-		data = ledCmd[data-1];
+	if (tkey_i2c->module_ver >= 8)
+		data = ledCmd[data];
 #else
-		data = ledCmd[data-1];
+	data = ledCmd[data];
 #endif
 	}
 	ret = i2c_touchkey_write(tkey_i2c->client, (u8 *) &data, 1);
